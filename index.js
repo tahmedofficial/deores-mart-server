@@ -32,7 +32,28 @@ async function run() {
 
         // Users related api
         app.get("/users", async (req, res) => {
-            const result = await usersCollection.find().toArray();
+            try {
+                const filter = req.query.search;
+                const query = {
+                    $or: [
+                        { name: { $regex: filter, $options: "i" } },
+                        { email: { $regex: filter, $options: "i" } },
+                        { number: { $regex: filter, $options: "i" } }
+
+                    ]
+                };
+                const result = await usersCollection.find(query).toArray();
+                res.send(result);
+            }
+            catch {
+                res.send([]);
+            }
+        })
+
+        app.get("/users/:email", async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const result = await usersCollection.findOne(query);
             res.send(result);
         })
 
@@ -44,6 +65,23 @@ async function run() {
                 return res.send({ message: "user already exists", insertrdId: null })
             }
             const result = await usersCollection.insertOne(user);
+            res.send(result);
+        })
+
+        app.patch("/users/:email", async (req, res) => {
+            const user = req.body;
+            const email = req.params.email;
+            const query = { email: email };
+            const updateUser = {
+                $set: {
+                    email: user.email,
+                    name: user.name,
+                    image: user.image || "",
+                    number: user.number,
+                    role: user.role || ""
+                }
+            };
+            const result = await usersCollection.updateOne(query, updateUser);
             res.send(result);
         })
 
