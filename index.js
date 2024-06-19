@@ -30,8 +30,45 @@ async function run() {
         const usersCollection = database.collection("users");
         const addressCollection = database.collection("address");
 
+        // jwt related api
+        app.post("/jwt", async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.SECRET_TOKEN, { expiresIn: "1h" });
+            res.send({ token });
+        })
+
+        // Middlewares
+        const verifyToken = (req, res, next) => {
+
+            const token = req?.headers?.authorization
+
+            if (!token) {
+                return res.status(401).send({ message: "Unauthorized access" });
+            }
+
+            jwt.verify(token, process.env.SECRET_TOKEN, (error, decoded) => {
+                if (error) {
+                    return res.status(401).send({ message: "Unauthorized access" });
+                }
+                req.decoded = decoded;
+                next();
+            })
+
+        }
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded?.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            const isAdmin = user?.role === "admin";
+            if (!isAdmin) {
+                return res.status(403).send("forbidden access");
+            }
+            next();
+        }
+
         // Users related api
-        app.get("/users", async (req, res) => {
+        app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const filter = req.query.search;
                 const query = {
@@ -50,7 +87,7 @@ async function run() {
             }
         })
 
-        app.get("/users/:email", async (req, res) => {
+        app.get("/users/:email", verifyToken, async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
             const result = await usersCollection.findOne(query);
@@ -68,7 +105,7 @@ async function run() {
             res.send(result);
         })
 
-        app.patch("/users/:email", async (req, res) => {
+        app.patch("/users/:email", verifyToken, async (req, res) => {
             const user = req.body;
             const email = req.params.email;
             const query = { email: email };
@@ -86,8 +123,11 @@ async function run() {
         })
 
         // Find user role
-        app.get("/admin/:email", async (req, res) => {
+        app.get("/admin/:email", verifyToken, async (req, res) => {
             const email = req.params.email;
+            if (email !== req.decoded.email) {
+                return res.status(403).send("forbidden access");
+            }
             const query = { email: email };
             const user = await usersCollection.findOne(query);
             let admin = false;
@@ -99,14 +139,14 @@ async function run() {
         })
 
         // Address related api
-        app.get("/address/:email", async (req, res) => {
+        app.get("/address/:email", verifyToken, async (req, res) => {
             const email = req.params.email;
             const query = { email: email };
             const result = await addressCollection.findOne(query);
             res.send(result);
         })
 
-        app.patch("/address/:email", async (req, res) => {
+        app.patch("/address/:email", verifyToken, async (req, res) => {
             const address = req.body;
             const email = req.params.email;
             const query = { email: email };
