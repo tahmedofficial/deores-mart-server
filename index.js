@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require("jsonwebtoken");
 // const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -29,6 +29,7 @@ async function run() {
         const database = client.db("deoresDB");
         const usersCollection = database.collection("users");
         const addressCollection = database.collection("address");
+        const productsCollection = database.collection("products");
 
         // jwt related api
         app.post("/jwt", async (req, res) => {
@@ -99,7 +100,7 @@ async function run() {
             const query = { email: user?.email };
             const isExist = await usersCollection.findOne(query);
             if (isExist) {
-                return res.send({ message: "user already exists", insertrdId: null })
+                return res.send({ message: "user already exists", insertedId: null })
             }
             const result = await usersCollection.insertOne(user);
             res.send(result);
@@ -163,6 +164,33 @@ async function run() {
                 }
             };
             const result = await addressCollection.updateOne(query, updateAddress, options);
+            res.send(result);
+        })
+
+        // Products related api
+        app.get("/products", async (req, res) => {
+            const result = await productsCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get("/product/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await productsCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.get("/products/:category", async (req, res) => {
+            const category = req.params.category;
+            const query = { category: category };
+            const result = await productsCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.post("/products", verifyToken, verifyAdmin, async (req, res) => {
+            const product = req.body;
+            console.log(product);
+            const result = await productsCollection.insertOne(product);
             res.send(result);
         })
 
