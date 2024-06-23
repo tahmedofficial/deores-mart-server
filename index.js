@@ -23,6 +23,10 @@ const client = new MongoClient(uri, {
     }
 });
 
+const id = {
+    orderId: "DS-570422"
+}
+
 async function run() {
     try {
 
@@ -30,6 +34,9 @@ async function run() {
         const usersCollection = database.collection("users");
         const addressCollection = database.collection("address");
         const productsCollection = database.collection("products");
+        const cartsCollection = database.collection("carts");
+        const ordersIdCollection = database.collection("orderId");
+        const ordersCollection = database.collection("orders");
 
         // jwt related api
         app.post("/jwt", async (req, res) => {
@@ -191,6 +198,39 @@ async function run() {
             const product = req.body;
             console.log(product);
             const result = await productsCollection.insertOne(product);
+            res.send(result);
+        })
+
+        // Carts related api
+        app.get("/carts/:email", verifyToken, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const result = await cartsCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.post("/carts", verifyToken, async (req, res) => {
+            const productInfo = req.body;
+            const query = { productId: productInfo.productId, size: productInfo.size }
+            const isExist = await cartsCollection.findOne(query);
+            if (isExist) {
+                return res.send({ insertedId: null })
+            }
+            const result = await cartsCollection.insertOne(productInfo);
+            res.send(result);
+        })
+
+        app.delete("/carts/:id", verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await cartsCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // Order related api
+        app.post("/createOrderId", async (req, res) => {
+            const orderId = req.body;
+            const result = await ordersIdCollection.insertOne(orderId);
             res.send(result);
         })
 
