@@ -227,11 +227,50 @@ async function run() {
             res.send(result);
         })
 
-        // Order related api
-        app.post("/createOrderId", async (req, res) => {
-            const orderId = req.body;
-            const result = await ordersIdCollection.insertOne(orderId);
+        // Order id related api
+        app.get("/orderId/:id", verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await ordersIdCollection.findOne(query);
             res.send(result);
+        })
+
+        app.patch("/orderId/:id", verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const orderId = req.body;
+            const query = { _id: new ObjectId(id) };
+            const updateOrderId = {
+                $set: {
+                    orderId: orderId.orderId
+                }
+            }
+            const result = await ordersIdCollection.updateOne(query, updateOrderId);
+            res.send(result);
+        })
+
+        // Order related api
+        app.get("/orders", verifyToken, verifyAdmin, async (req, res) => {
+            const result = await ordersCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get("/orders/:email", verifyToken, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email }
+            const result = await ordersCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.post("/orders", verifyToken, async (req, res) => {
+            const orderData = req.body;
+            const result = await ordersCollection.insertOne(orderData);
+            const query = {
+                _id: {
+                    $in: orderData.orderInfo.map(item => new ObjectId(item._id))
+                }
+            }
+            const deleteRes = await cartsCollection.deleteMany(query);
+            res.send({ result, deleteRes });
         })
 
         await client.db("admin").command({ ping: 1 });
