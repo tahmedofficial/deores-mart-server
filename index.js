@@ -8,7 +8,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors({ origin: ["http://localhost:5173"], credentials: true, }));
+app.use(cors({ origin: ["http://localhost:5173", "https://deores-mart.web.app", "https://deores-mart.firebaseapp.com"], credentials: true, }));
 app.use(express.json());
 // app.use(cookieParser());
 
@@ -273,7 +273,7 @@ async function run() {
             res.send({ result, deleteRes });
         })
 
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // await client.close();
