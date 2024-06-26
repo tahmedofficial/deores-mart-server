@@ -2,15 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const jwt = require("jsonwebtoken");
-// const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
-// middleware
 app.use(cors({ origin: ["http://localhost:5173", "https://deores-mart.web.app", "https://deores-mart.firebaseapp.com"], credentials: true, }));
 app.use(express.json());
-// app.use(cookieParser());
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ufkobjs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -174,11 +171,28 @@ async function run() {
             res.send(result);
         })
 
-        // Products related api
+        // Products related 
+        app.get("/productsCount", async (req, res) => {
+            const count = await productsCollection.estimatedDocumentCount();
+            res.send({ count });
+        })
+
         app.get("/products", async (req, res) => {
             const result = await productsCollection.find().toArray();
             res.send(result);
         })
+
+        app.get("/randomProducts/:gender/:id", async (req, res) => {
+            const gender = req.params.gender;
+            const id = req.params.id;
+            const query = { gender: gender, _id: { $ne: new ObjectId(id) } };
+            const pipeline = [
+                { $match: query },
+                { $sample: { size: 6 } }
+            ];
+            const result = await productsCollection.aggregate(pipeline).toArray();
+            res.send(result);
+        });
 
         app.get("/product/:id", async (req, res) => {
             const id = req.params.id;
@@ -187,9 +201,10 @@ async function run() {
             res.send(result);
         })
 
-        app.get("/products/:category", async (req, res) => {
+        app.get("/products/:category/:id", async (req, res) => {
             const category = req.params.category;
-            const query = { category: category };
+            const id = req.params.id;
+            const query = { category: category, _id: { $ne: new ObjectId(id) } };
             const result = await productsCollection.find(query).toArray();
             res.send(result);
         })
