@@ -182,6 +182,14 @@ async function run() {
             res.send(result);
         })
 
+        app.get("/randomProducts", async (req, res) => {
+            const pipeline = [
+                { $sample: { size: 8 } }
+            ];
+            const result = await productsCollection.aggregate(pipeline).toArray();
+            res.send(result);
+        });
+
         app.get("/randomProducts/:gender/:id", async (req, res) => {
             const gender = req.params.gender;
             const id = req.params.id;
@@ -271,7 +279,14 @@ async function run() {
 
         app.get("/orders/:email", verifyToken, async (req, res) => {
             const email = req.params.email;
-            const query = { email: email }
+            const query = { email: email, status: { $ne: "Delivered" } }
+            const result = await ordersCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.get("/orders/delivered/:email", verifyToken, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email, status: "Delivered" }
             const result = await ordersCollection.find(query).toArray();
             res.send(result);
         })
@@ -286,6 +301,22 @@ async function run() {
             }
             const deleteRes = await cartsCollection.deleteMany(query);
             res.send({ result, deleteRes });
+        })
+
+        app.patch("/orders/:orderId", verifyToken, verifyAdmin, async (req, res) => {
+            const orderId = req.params.orderId;
+            const status = req.body;
+            const query = { orderId: orderId };
+            const updateStatus = { $set: { status: status.status } }
+            const result = await ordersCollection.updateOne(query, updateStatus);
+            res.send(result);
+        })
+
+        app.delete("/orders/:orderId", verifyToken, verifyAdmin, async (req, res) => {
+            const orderId = req.params.orderId;
+            const query = { orderId: orderId };
+            const result = await ordersCollection.deleteOne(query);
+            res.send(result);
         })
 
         // await client.db("admin").command({ ping: 1 });
