@@ -224,6 +224,55 @@ async function run() {
             res.send(result);
         })
 
+        app.patch("/products/:id", async (req, res) => {
+            const id = req.params.id;
+            const productInfo = req.body;
+            const query = { _id: new ObjectId(id) };
+            const updateData = {
+                $set: {
+                    title: productInfo.title,
+                    description: productInfo.description,
+                    gender: productInfo.gender,
+                    category: productInfo.category,
+                    sQuantity: productInfo.sQuantity,
+                    mQuantity: productInfo.mQuantity,
+                    lQuantity: productInfo.lQuantity,
+                    xlQuantity: productInfo.xlQuantity,
+                    price: productInfo.price
+                }
+            }
+            const result = await productsCollection.updateOne(query, updateData);
+            res.send(result);
+        })
+
+        app.delete("/products/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await productsCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // Product code related api
+        app.get("/productCode/:id", verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await ordersIdCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.patch("/productCode/:id", verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const productCode = req.body;
+            const query = { _id: new ObjectId(id) };
+            const updateProductCode = {
+                $set: {
+                    productCode: productCode.productCode
+                }
+            }
+            const result = await ordersIdCollection.updateOne(query, updateProductCode);
+            res.send(result);
+        })
+
         // Carts related api
         app.get("/carts/:email", verifyToken, async (req, res) => {
             const email = req.params.email;
@@ -274,6 +323,13 @@ async function run() {
         // Order related api
         app.get("/orders", verifyToken, verifyAdmin, async (req, res) => {
             const result = await ordersCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get("/orders/invoice/:id", verifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await ordersCollection.findOne(query);
             res.send(result);
         })
 
